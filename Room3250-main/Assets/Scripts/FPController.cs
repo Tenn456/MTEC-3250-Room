@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using System;
 
 public class FPController : MonoBehaviour
 {
@@ -31,9 +32,7 @@ public class FPController : MonoBehaviour
 
 
     [Header("UI")]
-    [SerializeField] private Sprite reticleSprite;
-    [SerializeField] private Color reticleColor;
-    [SerializeField] private Image reticleImage;
+    [SerializeField] private Sprite reticle;
 
     [Header("Footsteps")]
     [SerializeField] private bool footstepsEnabled = true;
@@ -60,12 +59,16 @@ public class FPController : MonoBehaviour
     private Camera mainCamera;
     private GameObject currentSurface;
     private GameObject objectInFocus;
+    private GameObject lastObjectInFocus;
     public GameObject ObjectInFocus { get { return objectInFocus; } }
+    public GameObject CurrentSurface { get { return currentSurface; } }
 
- 
+    public static event Action<GameObject,float> InFocusAtDistance;
+
 
     private CharacterController characterController;
     private bool isMoving;
+
 
 
 
@@ -79,8 +82,6 @@ public class FPController : MonoBehaviour
         defaultCameraHeight = mainCamera.transform.localPosition.y;
         standingPos = new Vector3(0, defaultCameraHeight, 0);
         crouchedPos = new Vector3(0, crouchCameraHeight, 0);
-
-        InitializeReticle();
     }
 
     private void Update()
@@ -93,14 +94,17 @@ public class FPController : MonoBehaviour
 
         if (isMoving) CheckGround();
         if (footstepsEnabled)HandleFootsteps();
+
+        if (objectInFocus != null && lastObjectInFocus != objectInFocus)
+        {
+            float dist = Vector3.Distance(transform.position, objectInFocus.transform.position);
+            InFocusAtDistance?.Invoke(objectInFocus,dist);
+            lastObjectInFocus = objectInFocus;
+        } 
+
     }
 
 
-    void InitializeReticle()
-    {
-        reticleImage.sprite = reticleSprite;
-        reticleImage.color = reticleColor;
-    }
 
     void HandleFlashlight()
     {
@@ -223,7 +227,7 @@ public class FPController : MonoBehaviour
         }
         else
         {
-            randomIndex = Random.Range(0, footstepSounds.Length - 1);
+            randomIndex = UnityEngine.Random.Range(0, footstepSounds.Length - 1);
             if (randomIndex >= lastPlayedIndex)
             {
                 randomIndex++;
@@ -232,7 +236,7 @@ public class FPController : MonoBehaviour
 
         lastPlayedIndex = randomIndex;
         footstepSource.clip = footstepSounds[randomIndex];
-        footstepSource.pitch = Random.Range(minPitch, maxPitch);
+        footstepSource.pitch = UnityEngine.Random.Range(minPitch, maxPitch);
         footstepSource.Play();
     }
 
